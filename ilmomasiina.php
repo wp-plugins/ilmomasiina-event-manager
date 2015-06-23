@@ -1,9 +1,11 @@
 <?php
 /*
-Plugin Name: Tysss - Ilmomasiina
+Plugin Name: Ilmomasiina
+Plugin URI: https://wordpress.org/plugins/ilmomasiina-event-manager/
 Author: Tomi Ylä-Soininmäki
 Author email: tomi.yla-soininmaki@fimnet.fi
 Description: Ilmomasiina tapahtumien luomiseen ja ilmottautumiseen
+Version: 0.1.1
 */
 
 include_once( plugin_dir_path( __FILE__ ) . 'kayttoliittyma.php'); // Linkitetään UI:n luova php

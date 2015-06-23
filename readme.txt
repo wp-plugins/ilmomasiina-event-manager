@@ -1,4 +1,4 @@
-=== Ilmomasiina - event manager ===
+=== Ilmomasiina ===
 
 Contributors: tysss
 Tags: doodle, enrollment, event, subscription, event registration
@@ -32,6 +32,11 @@ Currently the plugin is only in Finnish, but translation possibility and English
 == Changelog ==
 
 
+
+= 0.1.1 =
+
+* Changed the name of the plugin
+* Added info about the plugin to the plugin file
 
 = 0.1 =
 
