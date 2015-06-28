@@ -196,14 +196,28 @@ function tulosta_tapahtuma($id) {
 		$tuloste .= '<p>'.tallenna_ilmo($id).'</p>';
 	}
 	
+	if (isset($_GET['peru'])) {
+		$tuloste .= peruuta_osallistuminen($id, $_GET['peru']);
+	}
+	
 	if (get_post_meta($id, '_tapahtumanaika', true) - time() > 0 ) {
 		$tuloste .= tapahtuman_osallistujalista($id);
 	}
 	
 	
-	 if (!isset($_POST['ilmo_nonce'])) {	
-		 
-		if (time() > get_post_meta($id, '_ilmoaika', true) && time() < get_post_meta($id, '_ilmonloppuaika', true)  && (get_post_meta($id, '_varasijat', true) || get_post_meta($id, '_maxosallistujat', true) > count(get_post_meta($id, '_ilmot', true)) || !(get_post_meta($id, '_maxosallistujat', true)>0)) /* Jo osallistuneiden määrä */  ) {
+	if (!isset($_POST['ilmo_nonce'])) {	
+		
+		if ( // Hemmetin pitkä if klausuuli alkaa
+			time() > get_post_meta($id, '_ilmoaika', true) && 
+			(
+				time() < get_post_meta($id, '_ilmonloppuaika', true) || 
+				isset($_GET['paivitys'])
+			)  &&  (
+				get_post_meta($id, '_varasijat', true) || 
+				get_post_meta($id, '_maxosallistujat', true) > count(get_post_meta($id, '_ilmot', true)) || 
+				!(get_post_meta($id, '_maxosallistujat', true)>0)
+			) 
+		) { // Hemmetin pitkä if klausuuli loppuu, ja itse if sisältö alkaa
 			$tuloste .= ilmottaudu_tapahtumaan($id);
 		} else {
 			
@@ -230,11 +244,12 @@ function tapahtuman_osallistujalista($id) {
 	
 	$tuloste .= '<ol>';
 	$i = 0;
-	foreach ($ilmot as $ilmo) {
+	foreach ($ilmot as $md5 => $ilmo) {
 		$tuloste .= '<li>'.(isset($ilmo['anonyymi']) && $ilmo['anonyymi']==true?'<i>Anonyymi</i>':$ilmo['nimi']);
+		$tuloste .= ' <a href="?tapahtuma='.$id.'&muokkaa='.$md5.'">Muokkaa</a>';
 		$i++;
 		if ($i == get_post_meta($id, '_maxosallistujat', true)) {
-			$tuloste .= '<br /><hr /></li>';
+			$tuloste .= '</li></ol><hr /><ol>';
 		} else {
 			$tuloste .= '</li>';
 		}
@@ -245,13 +260,22 @@ function tapahtuman_osallistujalista($id) {
 }
 
 // Ilmottautumislomake
-function ilmottaudu_tapahtumaan($id) {
-	$tuloste = '<h3>Ilmottautumislomake:</h3>';
+function ilmottaudu_tapahtumaan($id, $paivitys=false) {
+	$tuloste = '';
+	$paivitys = (isset($_GET['muokkaa']) ? true: false);
+	if ($paivitys==false) {
+		$tuloste .= '<h3>Ilmottautumislomake:</h3>';
+	} else {
+		$tuloste .= '<h3>Päivitä aiempaa vastausta</h3>';
+		$tuloste .= '<p>Myös vanhat tiedot säilyvät tietokannassa väärinkäytösten ja virheiden estämiseksi.</p>';
+		$tuloste .= '<p><a href="?tapahtuma='.$id.'&peru='.$_GET['muokkaa'].'">Peru ilmottautuminen</a></p>';
+	}
 	
 	$tuloste .= '<form method="post" action="">';
 	
 	$tuloste .= '<input type="hidden" name="ilmo_nonce" id="ilmo_nonce" value="' . wp_create_nonce( plugin_basename(__FILE__).'ilmon_nonce' ) . '" />';
-	$tuloste .= '<input type="hidden" name="ilmo_aika" id="ilmo_aika" value="' . time() . '" />';
+	$tuloste .= '<input type="hidden" name="ilmo_aika" id="ilmo_aika" value="'. time() .'" />';
+	$tuloste .= ( $paivitys ? '<input type="hidden" name="paivitys" value="'.$_GET['muokkaa'].'">' : '' );
 	
 	$tuloste .= '<label class="ilmo_ohje" for="nimi">Nimi: *</label><br />';
 	$tuloste .= '<input class="ilmoteksti" type="text" name="nimi" id="nimi" required/><br />';
@@ -330,22 +354,32 @@ function ilmottaudu_tapahtumaan($id) {
 }
 
 
-// Tallenna ilmo
+// TALLENNA ILMO 
+
 function tallenna_ilmo($id) {
 	
-	if ( ((time()<get_post_meta($id, '_ilmoaika', true) || time()>get_post_meta($id, '_ilmonloppuaika', true) ) && !get_post_field( 'post_author', $id ) == get_current_user_id()) || !wp_verify_nonce( $_POST['ilmo_nonce'], plugin_basename(__FILE__).'ilmon_nonce' )) return 'Tallennus epäonnistui.';
+	if (   ( (time() < get_post_meta($id, '_ilmoaika', true)   ||   (time() > get_post_meta($id, '_ilmonloppuaika', true) && !isset($_POST['paivitys'])) ) && !get_post_field( 'post_author', $id ) == get_current_user_id()   )   || !wp_verify_nonce( $_POST['ilmo_nonce'], plugin_basename(__FILE__).'ilmon_nonce' )) return 'Tallennus epäonnistui.';
+	
 	
 	
 	$ilmot = get_post_meta($id, '_ilmot', true);
 	
 	
+	$paivitys = (isset($_POST['paivitys']) && isset($ilmot[$_POST['paivitys']])? $_POST['paivitys'] : false );
+	
 	$vastaus = array();
 	
 	$vastaus['nimi'] = sanitize_text_field($_POST['nimi']);
-	$ilmoaika = sanitize_text_field($_POST['ilmo_aika']);
 	$vastaus['anonyymi'] = ($_POST['anonyymi']==1?true:false);
 	
+	$ilmoaika = sanitize_text_field($_POST['ilmo_aika']);
+	$vastaus['ilmoaika'] = $ilmoaika;
 	
+	if ($paivitys == false ) {
+		$md5 = md5($ilmoaika.$vastaus['nimi']);
+	} else {
+		$md5 = $paivitys;
+	}
 	
 	$tekstikentat = get_the_terms($id,'tapahtuman_tekstikentat');
 	
@@ -382,8 +416,13 @@ function tallenna_ilmo($id) {
 		
 	}
 	
-	if (isset($ilmot[$ilmoaika]) && $ilmot[$ilmoaika]['nimi'] == $vastaus['nimi']) return 'Lähettämästi tiedot löytyvät jo tietokannasta..';
-	$ilmot[$ilmoaika] = $vastaus;
+	if (isset($ilmot[$md5]) && $ilmot[$md5]['nimi'] == $vastaus['nimi']) return 'Lähettämästi tiedot löytyvät jo tietokannasta..';
+	
+	if ($paivitys) {
+		$vastaus['ennenmuokkausta'] = $ilmot[$md5];
+	}
+	
+	$ilmot[$md5] = $vastaus;
 	
 	
 	if (get_post_meta($id, '_ilmot', false)) {
@@ -394,5 +433,33 @@ function tallenna_ilmo($id) {
 	
 	$tuloste .= ($onnistuko? 'Tiedot lisätty onnistuneesti!' : 'Ilmottautuminen epäonnistui.');
 	
+	return $tuloste;
+}
+
+// PERUTAAN OSALLISTUMINEN
+function peruuta_osallistuminen($id, $md5) {
+	$ilmot = get_post_meta($id, '_ilmot', true);
+	$peruneet = get_post_meta($id, '_peruneet', true);
+	var_dump($ilmot);
+	if ( isset($ilmot[$md5]) ) {
+		
+		$peruneet[$md5] = $ilmot[$md5];
+		unset($ilmot[$md5]);
+		
+		if (get_post_meta($id, '_ilmot', false)) {
+			update_post_meta($id, '_ilmot', $ilmot);
+		} else {
+			add_post_meta($id, '_ilmot', $ilmot);
+		}
+		
+		if (get_post_meta($id, '_peruneet', false)) {
+			update_post_meta($id, '_peruneet', $peruneet);
+		} else {
+			add_post_meta($id, '_peruneet', $peruneet);
+		}
+		$tuloste = '<p>Ilmottautuminen peruttu.</p>';
+	} else {
+		$tuloste = '<p>Ilmottautumista ei löydetty, eikä sitä poistettu.</p>';
+	}
 	return $tuloste;
 }
