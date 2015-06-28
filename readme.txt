@@ -4,7 +4,7 @@ Contributors: tysss
 Tags: doodle, enrollment, event, subscription, event registration
 Requires at least: 3.8.0
 Tested up to: 4.2.2
-Stable tag: 0.1.1
+Stable tag: 0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,12 @@ Currently the plugin is only in Finnish, but translation possibility and English
 == Changelog ==
 
 
+
+= 0.2 =
+
+* Added possibility to edit and delete previous responses
+* Created backup system for accidental removals of data
+* Many, many smaller fixes
 
 = 0.1.1 =
 
