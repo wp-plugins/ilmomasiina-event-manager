@@ -146,7 +146,7 @@ function tulosta_tapahtuma($content) {
 	}
 	
 	
-	$tuloste .= get_the_post_thumbnail( $post->ID, 'large' ).'<br /><br />';
+	//$tuloste .= get_the_post_thumbnail( $post->ID, 'large' ).'<br /><br />';
 	
 	
 	$tuloste .= '<table>
@@ -244,7 +244,7 @@ function tulosta_tapahtuma($content) {
   
   if ($post->post_author == get_current_user_id()) {
     ob_start();
-    echo '<h1>Osallistujat:</h1>Tämä näkyy vain tapahtuman ylläpitäjälle.<br /><br />';
+    echo '<hr /> <h1>Osallistujat:</h1>Tämä näkyy vain tapahtuman ylläpitäjälle.<br /><br />';
     tapahtumaan_ilmonneet_metabox();
     $tuloste .= ob_get_clean();
   }
@@ -285,6 +285,9 @@ function tapahtuman_osallistujalista($id) {
 // Ilmottautumislomake
 function ilmottaudu_tapahtumaan($id, $paivitys=false) {
 	$tuloste = '';
+	$tuloste .= '<button type="button" id="ilmottaudu-nappula" onclick="ilmottaudu()">Ilmoittaudu!</button>';
+	$tuloste .= '<div id="ilmolomakediv" style="display: none;">';
+	$tuloste .= '<hr />';
 	$paivitys = (isset($_GET['muokkaa']) ? true: false);
 	if ($paivitys==false) {
 		$tuloste .= '<h3>Ilmoittautumislomake:</h3>';
@@ -326,7 +329,7 @@ function ilmottaudu_tapahtumaan($id, $paivitys=false) {
       $tuloste .= '<textarea style="min-width: 300px; min-height: 150px;" class="ilmoisoteksti" type="text" name="'.$key.'" id="'.$key.'_kentta" '.($kentta['pakollinen']?'required':'').'> </textarea></p>';
     }
     
-    if ($kentta['tyyppi'] == 'monivalinta') {
+    if ($kentta['tyyppi'] == 'valinta') {
       $tuloste .= '<p>'.$kentta['ohje'].($kentta['pakollinen']?'*':'').'<br />';
       $i = 0;
       foreach ($kentta['vaihtoehdot'] as $vaihtoehto) {
@@ -337,7 +340,7 @@ function ilmottaudu_tapahtumaan($id, $paivitys=false) {
       $tuloste .= '</p>';
     }
     
-    if ($kentta['tyyppi'] == 'valinta') {
+    if ($kentta['tyyppi'] == 'monivalinta') {
       $tuloste .= '<p>'.$kentta['ohje'].($kentta['pakollinen']?'*':'').'<br />';
       $i = 0;
       foreach ($kentta['vaihtoehdot'] as $vaihtoehto) {
@@ -352,6 +355,29 @@ function ilmottaudu_tapahtumaan($id, $paivitys=false) {
   
 	$tuloste .= '<input type="submit" value="Lähetä" />';
 	$tuloste .= '</form>';
+	$tuloste .= '</div>';
+	
+	
+	$tuloste .= '
+<script>
+function ilmottaudu() {
+var ilmottaudunappula = document.getElementById("ilmottaudu-nappula");
+var ilmolomake = document.getElementById("ilmolomakediv");
+
+ilmolomake.style.display = "block";
+ilmottaudunappula.style.display = "none";
+}
+
+
+var ilmottaudunappula = document.getElementById("ilmottaudu-nappula");
+var ilmolomake = document.getElementById("ilmolomakediv");
+
+
+ilmolomake.style.display = "none";
+
+</script>
+';
+	
 	return $tuloste;
   
   
@@ -391,52 +417,19 @@ function tallenna_ilmo($id) {
     if ($kentta['tyyppi']=='ohje') continue;
     $vastaus[$kentta['ohje']] = sanitize_text_field($_POST[$key]);
     
-    if ($kentta['tyyppi']=='valinta') {
+    if ($kentta['tyyppi']=='monivalinta') {
       $vastaus[$kentta['ohje']] = '';
       foreach ($kentta['vaihtoehdot'] as $vaihtoehtokey => $vaihtoehto) {
         $vastaus[$kentta['ohje']] .= ($_POST[$key.'_'.$vaihtoehtokey] == 'kylla' ? $vaihtoehto.', ' : '');
       }
     }
     
-    if ($kentta['tyyppi']=='monivalinta') {
+    if ($kentta['tyyppi']=='valinta') {
       $vastaus[$kentta['ohje']] = $kentta['vaihtoehdot'][$_POST[$key]];
     }
   }
     
-	/*$tekstikentat = get_the_terms($id,'tapahtuman_tekstikentat');
-	
-	if (is_array($tekstikentat)) {
-		foreach ($tekstikentat as $kenttaobjekti) {
-			$slugi = $kenttaobjekti->slug;
-			$nimi = $kenttaobjekti->name;
-			if ($slugi == 'nimi') continue; // Estetään nimen tuplakysely
-			
-			$vastaus[$slugi] = sanitize_text_field($_POST[$slugi]);
-		}
-	}
-	
-	$monivalinnat = get_the_terms($id,'tapahtuman_monivalinnat');
-	
-	if (is_array($monivalinnat)) {
-		foreach ($monivalinnat as $monivalinta) {
-			$slugi = $monivalinta->slug;
-			
-			$vastaus[$slugi] = ($_POST[$slugi] == 1 ? 'Kyllä' : 'Ei');
-		}
-	}
-	
-	$valinnat = get_the_terms($id,'tapahtuman_valinnat');
-	
-	if (is_array($valinnat)) {
-		foreach ($valinnat as $valinta) {
-			$slugi = $valinta->slug;
-			
-			$vastaus[$slugi] = sanitize_text_field($_POST[$slugi]);
-			$vastaus[$slugi] = ($vastaus[$slugi] == 'kylla' ? 'Kyllä' : $vastaus[$slugi]);
-			$vastaus[$slugi] = ($vastaus[$slugi] == 'ei' ? 'Ei' : $vastaus[$slugi]);
-		}
-		
-	}*/
+
 	
 	if (isset($ilmot[$md5]) && $ilmot[$md5]['nimi'] == $vastaus['nimi']) return 'Lähettämästi tiedot löytyvät jo tietokannasta..';
 	

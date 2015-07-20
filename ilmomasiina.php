@@ -5,7 +5,7 @@ Plugin URI: https://wordpress.org/plugins/ilmomasiina-event-manager/
 Author: Tomi Ylä-Soininmäki
 Author email: tomi.yla-soininmaki@fimnet.fi
 Description: Ilmomasiina tapahtumien luomiseen ja ilmottautumiseen
-Version: 0.3
+Version: 0.3.2
 */
 
 include_once( plugin_dir_path( __FILE__ ) . 'kayttoliittyma.php'); // Linkitetään UI:n luova php
@@ -357,7 +357,7 @@ function tapahtumaan_ilmonneet_metabox() {
   
   $csvdata = 'sep=,%0A';
   
-	echo '<style>th { text-align: left; }</style>';
+	echo '<style>th { text-align: left; border: 1px solid #CCC; padding: 0 5px;}</style>';
 	echo '<div style="overflow-x: auto;"><table>';
 	
 	echo '<tr><th>n</th><th>Nimi</th>';
