@@ -3,7 +3,7 @@
 Contributors: tysss
 Tags: doodle, enrollment, event, subscription, event registration
 Requires at least: 3.8.0
-Tested up to: 4.2.2
+Tested up to: 4.3
 Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -30,7 +30,6 @@ Currently the plugin is only in Finnish, but translation possibility and English
 
 
 == Changelog ==
-
 
 
 = 0.3.2 =
