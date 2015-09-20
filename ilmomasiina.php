@@ -5,7 +5,7 @@ Plugin URI: https://wordpress.org/plugins/ilmomasiina-event-manager/
 Author: Tomi Ylä-Soininmäki
 Author email: tomi.yla-soininmaki@fimnet.fi
 Description: Ilmomasiina tapahtumien luomiseen ja ilmottautumiseen
-Version: 0.3.2
+Version: 0.4.2
 */
 
 include_once( plugin_dir_path( __FILE__ ) . 'kayttoliittyma.php'); // Linkitetään UI:n luova php
@@ -87,10 +87,11 @@ function poista_revolution_slider_tapahtumista() {
 }
 
 
+// TAPAHTUMAN OHJEET
 function tapahtuman_ohjeet() {
 	echo '
 <h1>Rivi-/Kenttätyypit</h1>
-<p>Teksti-kohdat ovat <b>pakollisia</b> kyseisen kohdan ohjeita ja samalla kentän yksilöiviä nimiä. NIIDEN PITÄÄ OLLA UNIIKKEJA, eli esim. älä lisää useampaa "email" -kohtaa, vaan tarvittaessa esim "email 1", "email 2".</p>
+<p>Teksti-kohdat ovat <b>pakollisia</b> kyseisen kohdan ohjeita ja samalla kentän yksilöiviä nimiä. NIIDEN PITÄÄ OLLA UNIIKKEJA, eli esim. älä lisää useampaa "osoite" -kohtaa, vaan tarvittaessa esim "osoite 1", "osoite 2".</p>
 
 
 <h2>Tekstikentät</h2>
@@ -98,6 +99,13 @@ function tapahtuman_ohjeet() {
 Tekstillä "Allergiat:" syntyy seuraavanlainen kenttä:<br />
 <label for="allergiat">Allergiat: </label><br />
 <input type="text" id="allergiat"></p>
+
+
+<h2>Email</h2>
+<p>Identtinen tekstikentän kanssa, mutta varmistetaan että syötetty arvo on sähköpostiosoite.<br />
+Tekstillä "Sähköposti:" syntyy seuraavanlainen kenttä:<br />
+<label for="meiliesimerkki">Sähköposti: </label><br />
+<input type="email" id="meiliesimerkki"></p>
 
 
 <h2>Valinta</h2>
@@ -136,7 +144,7 @@ function tapahtuman_kentat() {
   
   echo '<p>Ilmottautumislomakkeeseen lisätään automaattisesti Nimi-kenttä. Voit lisätä tässä lisäkenttiä. Älä muokkaa vanhoja kenttiä enää ensimmäisen ilmoittautumisen jälkeen.</p>';
   
-  echo (get_post_meta($post->ID, '_ilmot', true)!=false && count(get_post_meta($post->ID, '_ilmot', true))>0 ? '<h1 style="color:red">Ilmottautumisia on jo tullut. Älä enää muokkaa kenttiä!</h1>Voit kyllä lisätä uusia loppuun.<br /><br />' : '');
+  echo (get_post_meta($post->ID, '_yksittainenilmo', true)? '<h1 style="color:red">Ilmottautumisia on jo tullut. Älä enää muokkaa kenttiä!</h1>Voit kyllä lisätä uusia loppuun.<br /><br />' : '');
   
   $kentat = get_post_meta($post->ID, '_kentat', true);
   $kentat = (is_array($kentat) && !empty($kentat) ? $kentat : array() ) ;
@@ -161,6 +169,9 @@ function tapahtuman_kentat() {
 .ohjekentta, .vaihtoehdotkentta {width: 100%;; min-width: 200px;}
 </style>';
   
+  //echo '<p><input type="checkbox" name="pyyda_meili" id="pyyda_meili" value="1" /> <label for="pyyda_meili">Lisää pakollinen email-kenttä nimen alle</label></p>';
+  //echo '<p>Vaadi sähköposti:<br /><select class="tyyppi" name="pyyda_meili" id="pyyda_meili"><option value="1" >Kyllä</option><option value="0" '.(get_post_meta($post->ID, '_pyyda_meili',true)?'':'selected ').'>Ei</option></select></p>';
+  
   for ($i = 0 ; $i < 99; $i++) {
     echo '<div class="valintarivi" id="'.$i.'_rivi" '.($i+1>$montako?'style="display:none;"':'').'>';
     
@@ -169,6 +180,7 @@ function tapahtuman_kentat() {
     echo '	<select class="tyyppi" id="'.$i.'_tyyppi" name="'.$i.'_tyyppi" onchange="valittu('.$i.')">';
     echo '		<option value="tyhja"></option>';
     echo '    <option value="teksti"'.($kentat[$i]['tyyppi']=='teksti'?'selected':'').'>Tekstikenttä</option>';
+    echo '    <option value="email"'.($kentat[$i]['tyyppi']=='email'?'selected':'').'>Email</option>';
     echo '    <option value="valinta"'.($kentat[$i]['tyyppi']=='valinta'?'selected':'').'>Valinta</option>';
     echo '    <option value="monivalinta"'.($kentat[$i]['tyyppi']=='monivalinta'?'selected':'').'>Monivalinta</option>';
     echo '		<option value="ohje"'.($kentat[$i]['tyyppi']=='ohje'?'selected':'').'>Ohjeteksti</option>';
@@ -235,6 +247,10 @@ vaihtoehdot.style.display = "inline-block";
 }
 
 if (tyyppi.value == "teksti" ) {
+pakollinen.style.display = "inline-block";
+}
+
+if (tyyppi.value == "email" ) {
 pakollinen.style.display = "inline-block";
 }
 
@@ -323,10 +339,13 @@ function tapahtuman_ilmotietoja_metabox() {
 	echo '<i>Tyhjä ruutu tarkoittaa rajatonta osallistujamäärää</i><br /><br />';
 	
 	echo '<input type="checkbox" name="varasijat" id="varasijat" value=1 '.(get_post_meta($post->ID, '_varasijat', false)?'checked ':'').'/>';
-	echo '<label for="varasijat">Salli varasijoille ilmottautuminen?</label><br />';
+	echo '<label for="varasijat">Salli varasijoille ilmottautuminen</label><br />';
 	
 	echo '<input type="checkbox" name="piilota_ilmolista" id="piilota_ilmolista" value=1 '.(get_post_meta($post->ID, '_piilota_ilmolista', false)?'checked ':'').'/>';
-	echo '<label for="piilota_ilmolista">Piilota julkinen nimilista?</label><br />';
+	echo '<label for="piilota_ilmolista">Piilota julkinen nimilista</label><br />';
+	
+	echo '<input type="checkbox" name="salli_muokkaus" id="salli_muokkaus" value=1 '.(get_post_meta($post->ID, '_salli_muokkaus', false)?'checked ':'').'/>';
+	echo '<label for="salli_muokkaus">Salli vastauksen muokkaaminen ja peruutus</label><br />';
 	
 	echo '<br /><input type="checkbox" name="yksityinen_tapahtuma" id="yksityinen_tapahtuma" value=1 '.(get_post_meta($post->ID, '_yksityinen_tapahtuma', false)?'checked ':'').'/>';
 	echo '<label for="yksityinen_tapahtuma">Yksityinen tapahtuma (tapahtuma löytyy vain linkin tietämällä)</label><br />';
@@ -336,23 +355,24 @@ function tapahtuman_ilmotietoja_metabox() {
 
 
 // Ilmoittautuneet -metaboxi
-
 function tapahtumaan_ilmonneet_metabox() {
 	global $post;
 	
+  
+	// paivita_uuteen($post->ID); // Päivitetään järjestelmä 0.3.2. -> 0.4 muutoksessa!
 	
 	$kentat = get_post_meta($post->ID,'_kentat', true);
-  if ($kentat == false) return;
+  if (!$kentat) $kentat = array();
   
-	foreach ($kentat as $key => $kentta) {
+  foreach ($kentat as $key => $kentta) {
     if ($kentta['tyyppi'] == 'ohje' ) {
       unset($kentat[$key]);
     }
-	}
+  }
 	
-	$ilmot = get_post_meta($post->ID, '_ilmot', true);
-  $ilmot = jarjesta_ilmot_aika($ilmot);
-	$peruneet = get_post_meta($post->ID, '_peruneet', true);
+	$ilmot = hae_ilmot($post->ID);
+  if (!$ilmot) $ilmot = array();
+	$peruneet = hae_peruuttaneet($post->ID);
 	if ($ilmot == false) return;
   
   $csvdata = 'sep=,%0A';
@@ -390,6 +410,13 @@ function tapahtumaan_ilmonneet_metabox() {
 	
 	echo '</table></div><hr /><br /><br />';
   
+  $csvdata = str_replace(' ', '%20', $csvdata);
+  $csvdata = str_replace('ä', '%E4', $csvdata);
+  $csvdata = str_replace('Ä', '%C4', $csvdata);
+  $csvdata = str_replace('Ö', '%D6', $csvdata);
+  $csvdata = str_replace('ö', '%F6', $csvdata);
+  
+  
   echo '<p><a download="'.$post->post_title.'.csv" href="data:application/csv;charset=utf-8,'.$csvdata.'" style="font-size:2em; font-weight:bold;">Lataa osallistujat</a> (.csv)</p>';
 	
 	echo '<p>Sössitkö? Tai haluatko tarkistaa peruutetut tai muokatut ilmoittautumiset? <br />Jos muutit kyseltäviä asioita ilmoittautumisen saavuttua niin alla on vielä kaikki ilmot. </p><p><a onclick="var a = document.getElementById(\'raakadata\'); a.style.display = \'block\'">Näytä raakadata</a></p>';
@@ -405,11 +432,11 @@ function tapahtumaan_ilmonneet_metabox() {
     echo '</tr>';
   }
   echo '</table>';
-  
+  echo '<p><b>Ilmoittautuneet</b></p>';
 	echo '<pre>';
 	var_dump($ilmot);
 	echo '</pre>';
-	echo '<hr /> Alla vielä peruuttaneet: <br /> <pre>';
+	echo '<hr /> <b>Alla vielä peruuttaneet:</b> <br /> <pre>';
 	var_dump($peruneet);
 	echo '</pre>';
 	echo '</div>';
@@ -435,8 +462,9 @@ function tallenna_tapahtuman_metaboksit($post_id, $post) {
 	
 	$tapahtumameta['_ilmonloppuaika'] = ($_POST['ilmonloppupaiva'] ?  strtotime($_POST['ilmonloppupaiva'].' '.$_POST['ilmonloppukello']) : $tapahtumameta['_tapahtumanaika']);
 	
-	
 	$tapahtumameta['_maxosallistujat'] = intval($_POST['maxosallistujat']);
+	$tapahtumameta['_salli_muokkaus'] = ($_POST['salli_muokkaus'] ? true: false);
+	//$tapahtumameta['_pyyda_meili'] = ($_POST['pyyda_meili'] == "1" ? true: false);
 	$tapahtumameta['_varasijat'] = ($_POST['varasijat']? true : false) ;
 	$tapahtumameta['_piilota_ilmolista'] = ($_POST['piilota_ilmolista']? true : false) ;
 	$tapahtumameta['_yksityinen_tapahtuma'] = ($_POST['yksityinen_tapahtuma']? true : false) ;
@@ -466,7 +494,7 @@ function tallenna_tapahtuman_kentat_metaboksi($post_id) {
     if ($_POST[$i.'_tyyppi'] != 'tyhja') {
       $kentta = array();
       $kentta['tyyppi'] = $_POST[$i.'_tyyppi'];
-      $kentta['ohje'] = $_POST[$i.'_ohje'];
+      $kentta['ohje'] = ($_POST[$i.'_ohje']?$_POST[$i.'_ohje']:$i);
       $kentta['pakollinen'] = ($_POST[$i.'_pakollinen']=='1'?true:false);
       $_POST[$i.'_vaihtoehdot'] = str_replace(' // ', '//', $_POST[$i.'_vaihtoehdot']);
       $kentta['vaihtoehdot'] = explode('//', $_POST[$i.'_vaihtoehdot']);
@@ -478,6 +506,7 @@ function tallenna_tapahtuman_kentat_metaboksi($post_id) {
 }
 
 function jarjesta_array_sisemman_arvon_mukaan($array, $key2) {
+  if (!is_array($array)) return $array;
   $uusiarray = array();
   $keyt = array();
   foreach ($array as $key1 => $arvo1 ) {
